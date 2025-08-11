@@ -1,0 +1,23 @@
+# Archivos de entorno virtual de Python
+/bin/
+/include/
+/lib/
+/lib64/
+/pyvenv.cfg
+/share/
+
+# Archivos temporales de Python
+*.pyc
+__pycache__/
+
+# Archivos de subida y almacenamiento seguro (no deberían estar en el repo)
+/uploads/
+/safe_storage/
+
+# Archivos de log
+/logs/
+
+# Contraseñas o secretos (si los tuvieras en un archivo)
+# passwords.txt
+# .env
+

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard</title>
+    <style>
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --danger-color: #dc3545;
+            --success-color: #28a745;
+            --info-color: #17a2b8;
+            --warning-color: #ffc107;
+            --light-gray: #f8f9fa;
+            --text-color: #333;
+            --text-muted: #6c757d;
+            --terminal-bg: #212529;
+            --terminal-text: #f8f9fa;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--light-gray);
+            display: flex;
+            min-height: 100vh;
+            color: var(--text-color);
+        }
+
+        /* --- Panel de Navegación Izquierdo --- */
+        .sidebar {
+            width: 260px;
+            background: linear-gradient(180deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+            color: white;
+            padding: 30px 20px;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 5px 0px 15px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .sidebar-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 5px;
+        }
+        
+        .sidebar-header p {
+            font-size: 1.1em;
+            opacity: 0.8;
+        }
+
+        .nav-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            flex-grow: 1;
+        }
+
+        .nav-btn {
+            display: block;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            font-weight: 600;
+            text-decoration: none;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            color: white;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            text-align: left;
+            cursor: pointer;
+        }
+
+        .nav-btn:hover, .nav-btn.active {
+            background: white;
+            color: var(--primary-color);
+            transform: translateY(-2px) translateX(5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+        }
+
+        .sidebar-footer a {
+            margin-top: 10px;
+            background: rgba(0,0,0,0.2);
+        }
+        
+        .sidebar-footer a:hover {
+            background: var(--danger-color);
+            color: white;
+        }
+
+        /* --- Contenido Principal (Derecha) --- */
+        .main-content {
+            flex: 1;
+            padding: 40px;
+            overflow-y: auto;
+        }
+
+        .content-header h2 {
+            font-size: 2em;
+            font-weight: 300;
+            margin-bottom: 30px;
+        }
+
+        .content-section {
+            display: none;
+        }
+
+        .content-section.active {
+            display: block;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+        
+        .card h3 {
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+
+        .upload-section {
+            border: 2px dashed var(--primary-color);
+            padding: 40px;
+            text-align: center;
+            background: #fdfdff;
+            border-radius: 15px;
+        }
+        
+        .radio-group {
+            text-align: left; max-width: 400px; display: inline-block;
+        }
+        .radio-group label {
+            display: block; padding: 8px 0; cursor: pointer;
+        }
+        
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 25px; cursor: pointer; font-size: 1em; font-weight: 600; text-decoration: none;
+            transition: all 0.3s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        .btn:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-danger { background: var(--danger-color); color: white; }
+        .btn-info { background: var(--info-color); color: white; }
+
+        .stat-item {
+            display: flex; justify-content: space-between; padding: 12px; background: var(--light-gray); border-radius: 8px; margin-bottom: 8px;
+        }
+
+        .management-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;
+        }
+        .management-card {
+            background: var(--light-gray); padding: 25px; border-radius: 12px;
+        }
+        
+        .job-item {
+            background: white; padding: 15px; border-radius: 10px; margin: 10px 0; border: 1px solid #eee;
+        }
+        
+        .terminal-output {
+            background-color: var(--terminal-bg); color: var(--terminal-text); font-family: 'Courier New', Courier, monospace;
+            padding: 20px; border-radius: 8px; margin-top: 20px; overflow-x: auto; white-space: pre;
+            text-align: left; min-height: 100px; border: 1px solid #444;
+        }
+        
+        .master-search-card { border-left-width: 5px; border-left-style: solid; margin-bottom: 20px; }
+        .dnc-card { border-left-color: var(--danger-color); }
+        .suppression-card { border-left-color: var(--text-muted); }
+        .sales-card { border-left-color: var(--warning-color); }
+        .card-title { font-weight: bold; margin-bottom: 10px; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h1>⚙️</h1>
+            <p>Admin Panel</p>
+        </div>
+        <div class="nav-buttons">
+            <button class="nav-btn active" onclick="showSection('upload')">📤 Cargar Archivos</button>
+            <button class="nav-btn" onclick="showSection('search')">🔎 Búsqueda Maestra</button>
+            <button class="nav-btn" onclick="showSection('manage')">📈 Gestión y Estadísticas</button>
+            <button class="nav-btn" onclick="showSection('jobs')">📋 Tareas Recientes</button>
+        </div>
+        <div class="sidebar-footer">
+            <a href="{{ url_for('index') }}" class="nav-btn">🏠 Inicio</a>
+            <a href="{{ url_for('admin_logout') }}" class="nav-btn">🚪 Salir</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        
+        <div id="upload-section" class="content-section active">
+            <div class="content-header">
+                <h2>Cargar y Procesar Nuevos Archivos</h2>
+            </div>
+            <div class="upload-section">
+                <form action="{{ url_for('upload_file') }}" method="post" enctype="multipart/form-data">
+                    <div style="margin-bottom: 20px;">
+                        <input type="file" id="file" name="file" accept=".txt,.xlsx,.csv" required style="padding: 10px; border: 1px solid #ccc; border-radius: 5px;">
+                    </div>
+                    <div class="radio-group">
+                        <label style="font-weight: bold;">Tipo de Archivo:</label>
+                        <label><input type="radio" name="file_type" value="txt" required> Lista DNC (.txt)</label>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 5px 0;">
+                        <label><input type="radio" name="file_type" value="suppression_csv"> Lista de Supresión (.csv)</label>
+                        <label><input type="radio" name="file_type" value="suppression_xlsx"> Lista de Supresión (.xlsx)</label>
+                        <hr style="border: none; border-top: 1px solid #eee; margin: 5px 0;">
+                        <label><input type="radio" name="file_type" value="sales_csv"> Lista de Ventas (.csv)</label>
+                        <label><input type="radio" name="file_type" value="sales_xlsx"> Lista de Ventas (.xlsx)</label>
+                    </div>
+                    <br><br>
+                    <button type="submit" class="btn btn-primary">🚀 Cargar y Procesar</button>
+                </form>
+            </div>
+        </div>
+
+        <div id="search-section" class="content-section">
+            <div class="content-header">
+                <h2>Búsqueda Maestra (Sin Restricciones)</h2>
+            </div>
+            <div class="card">
+                <h3>Buscar Número en Todas las Tablas</h3>
+                <div style="display:flex; gap: 10px;">
+                    <input type="text" id="master-search-input" placeholder="Ingresa un número de teléfono..." style="flex-grow: 1; padding: 15px; border-radius: 25px; border: 1px solid #ccc;">
+                    <button class="btn btn-primary" onclick="masterSearch()">Buscar</button>
+                </div>
+                <div id="master-search-results" style="margin-top: 20px;"></div>
+            </div>
+        </div>
+
+        <div id="manage-section" class="content-section">
+            <div class="content-header">
+                <h2>Gestión y Estadísticas de la Base de Datos</h2>
+            </div>
+            <div class="card">
+                <h3>Estadísticas <button class="btn btn-info" onclick="loadDatabaseStats()" style="float: right; padding: 8px 16px; font-size: 0.9em;">🔄 Refrescar</button></h3>
+                <div id="stats-content"><p>Haz clic en "Refrescar" para cargar las estadísticas.</p></div>
+            </div>
+            <div class="card">
+                <h3>Herramientas de Gestión</h3>
+                <div class="management-grid">
+                    <div class="management-card">
+                        <h4>🔍 Revisión Rápida de Registros</h4>
+                        <p><small>Previsualiza las primeras 10 filas de una tabla.</small></p>
+                        <select id="table-select" style="padding: 8px; margin: 10px 0; width: 100%; border-radius: 5px; border: 1px solid #ccc;">
+                            <option value="dnc_records">Registros DNC</option>
+                            <option value="suppression_records">Registros de Supresión</option>
+                            <option value="sales_records">Registros de Ventas</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="quickCheck()">Revisar Tabla</button>
+                    </div>
+                    <div class="management-card">
+                        <h4>⚠️ Zona de Peligro</h4>
+                        <p><small>Borra permanentemente todas las tablas de datos.</small></p>
+                        <button class="btn btn-danger" onclick="confirmClearAll()">Borrar Todos los Datos</button>
+                    </div>
+                </div>
+                <div id="quick-check-output" class="terminal-output" style="display: none;"></div>
+            </div>
+        </div>
+
+        <div id="jobs-section" class="content-section">
+            <div class="content-header">
+                <h2>Tareas de Procesamiento Recientes</h2>
+            </div>
+            <div class="card">
+                <div id="recent-jobs-list">
+                    {% if recent_jobs %}
+                        {% for job in recent_jobs %}
+                            <div class="job-item">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <strong>{{ job.filename or 'Archivo Desconocido' }}</strong><br>
+                                        <small style="color: var(--text-muted);">{{ job.file_type or 'N/A' }} | {{ job.started_at or 'Hora Desconocida' }}</small>
+                                    </div>
+                                    <div style="display: flex; align-items: center; gap: 15px;">
+                                        <span style="padding: 5px 12px; border-radius: 25px; font-size: 12px; font-weight: bold; 
+                                            {% if job.status == 'completed' %}background: #d4edda; color: #155724;
+                                            {% elif job.status == 'failed' %}background: #f8d7da; color: #721c24;
+                                            {% elif job.status in ['processing', 'validating', 'validated'] %}background: #fff3cd; color: #856404;
+                                            {% else %}background: #e2e6ea; color: #495057;{% endif %}">
+                                            {{ job.status | title or 'Desconocido' }}
+                                        </span>
+                                        {% if job.job_id %}
+                                            <a href="/progress/{{ job.job_id }}" class="btn btn-info" style="padding: 5px 10px; font-size: 0.8em;">Detalles</a>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <p>No se encontraron tareas de procesamiento recientes.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function showSection(sectionName) {
+            document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(sectionName + '-section').classList.add('active');
+            event.currentTarget.classList.add('active');
+        }
+
+        function loadDatabaseStats() {
+            const statsContainer = document.getElementById('stats-content');
+            statsContainer.innerHTML = '<em>Cargando...</em>';
+            fetch('/admin/database-stats').then(res => res.json()).then(data => {
+                if (data.error) {
+                    statsContainer.innerHTML = `<p style="color: red;">Error: ${data.error}</p>`;
+                    return;
+                }
+                let html = `<div class="stat-item"><span><strong>📊 Total de Registros:</strong></span><span>${data.total_records.toLocaleString()}</span></div>`;
+                if (data.record_counts) {
+                    data.record_counts.forEach(item => {
+                        html += `<div class="stat-item"><span><strong>${item.type}:</strong></span><span>${item.count.toLocaleString()}</span></div>`;
+                    });
+                }
+                if (data.state_breakdown && data.state_breakdown.length > 0) {
+                    html += `<div style="margin-top: 15px; font-weight: bold;">Desglose DNC por Estado:</div>`;
+                    data.state_breakdown.forEach(item => {
+                        html += `<div class="stat-item" style="font-size: 0.9em;"><span>${item.state}:</span><span>${item.count.toLocaleString()}</span></div>`;
+                    });
+                }
+                statsContainer.innerHTML = html;
+            });
+        }
+
+        function quickCheck() {
+            const tableName = document.getElementById('table-select').value;
+            const outputContainer = document.getElementById('quick-check-output');
+            
+            outputContainer.style.display = 'block';
+            outputContainer.textContent = `> Consultando registros de ${tableName}...`;
+
+            fetch(`/api/quick-check?table=${tableName}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.error) {
+                        outputContainer.textContent = `Error: ${data.error}`;
+                        return;
+                    }
+                    let outputText = `> Mostrando las primeras ${data.records.length} filas de "${data.table_name}":\n\n`;
+                    if (data.records.length > 0) {
+                        const headers = Object.keys(data.records[0]);
+                        const colWidths = headers.map(h => Math.max(h.length, ...data.records.map(r => String(r[h] || 'NULL').length)));
+                        
+                        outputText += headers.map((h, i) => h.padEnd(colWidths[i])).join(' | ') + '\n';
+                        outputText += headers.map((h, i) => '-'.repeat(colWidths[i])).join('-|-') + '\n';
+                        
+                        data.records.forEach(record => {
+                            const values = headers.map((h, i) => String(record[h] || 'NULL').padEnd(colWidths[i]));
+                            outputText += values.join(' | ') + '\n';
+                        });
+                    } else {
+                        outputText += `La tabla está vacía o no existe.`;
+                    }
+                    outputContainer.textContent = outputText;
+                });
+        }
+        
+        function masterSearch() {
+            const searchInput = document.getElementById('master-search-input');
+            const resultsContainer = document.getElementById('master-search-results');
+            const phoneNumber = searchInput.value.replace(/\D/g, '');
+            
+            if (phoneNumber.length < 9) {
+                alert('Por favor, ingresa un número válido.');
+                return;
+            }
+            
+            resultsContainer.innerHTML = '<em>Buscando...</em>';
+            
+            fetch(`/api/master-search?number=${phoneNumber}`)
+                .then(response => response.json())
+                .then(data => {
+                    resultsContainer.innerHTML = '';
+                    let foundSomething = false;
+
+                    if (data.dnc_result) {
+                        foundSomething = true;
+                        resultsContainer.innerHTML += `
+                            <div class="card master-search-card dnc-card">
+                                <p class="card-title">🚫 Registro DNC</p>
+                                <p><strong>Estado:</strong> ${data.dnc_result.state || 'N/A'}</p>
+                            </div>`;
+                    }
+                    
+                    if (data.suppression_result) {
+                        foundSomething = true;
+                        resultsContainer.innerHTML += `
+                            <div class="card master-search-card suppression-card">
+                                <p class="card-title">🔇 Registro de Supresión</p>
+                                <p><strong>Commodity:</strong> ${data.suppression_result.commodity || 'N/A'}</p>
+                            </div>`;
+                    }
+                    
+                    if (data.sales_result) {
+                        foundSomething = true;
+                        const sale = data.sales_result;
+                        resultsContainer.innerHTML += `
+                            <div class="card master-search-card sales-card">
+                                <p class="card-title">💰 Registro de Venta</p>
+                                <p><strong>Fecha Venta:</strong> ${sale.sale_date ? new Date(sale.sale_date).toLocaleDateString('es-CO', {timeZone:'UTC'}) : 'N/A'}</p>
+                                <p><strong>Proveedor:</strong> ${sale.provider || 'N/A'}</p>
+                                <p><strong>Commodity:</strong> ${sale.commodity || 'N/A'}</p>
+                                <p><strong>Nro. Alternativo:</strong> ${sale.alternate_number || 'N/A'}</p>
+                                <p><strong>Comentarios:</strong> ${sale.comments || 'Ninguno'}</p>
+                            </div>`;
+                    }
+                    
+                    if (!foundSomething) {
+                        resultsContainer.innerHTML = '<p>No se encontraron registros para este número en ninguna tabla.</p>';
+                    }
+                });
+        }
+
+        function confirmClearAll() {
+            if (confirm('⚠️ ¡ADVERTENCIA!\n\nEsto borrará permanentemente TODAS las tablas de datos. Esta acción no se puede deshacer.\n\n¿Estás seguro?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = "{{ url_for('clear_database') }}";
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        window.addEventListener('load', () => {
+            loadDatabaseStats();
+            document.querySelector('.nav-btn[onclick="showSection(\'upload\')"]').classList.add('active');
+        });
+    </script>
+</body>
+</html>

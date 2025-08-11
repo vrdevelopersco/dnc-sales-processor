@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda de Ventas</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .search-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
+        .title { font-size: 2em; color: #333; margin-bottom: 10px; }
+        .subtitle { color: #666; margin-bottom: 40px; font-size: 1.1em; }
+        .search-box { margin: 30px 0; }
+        .search-input { width: 100%; padding: 20px; font-size: 1.2em; border: 2px solid #e0e0e0; border-radius: 15px; text-align: center; margin-bottom: 20px; }
+        .search-btn { background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%); color: white; border: none; padding: 15px 40px; font-size: 1.1em; border-radius: 25px; cursor: pointer; }
+        .results-section { margin-top: 40px; display: none; text-align: left; }
+        .result-card { background: white; border-radius: 15px; padding: 25px; margin: 20px 0; border-left: 5px solid #ffc107; }
+        .card-header { font-size: 1.6em; font-weight: bold; color: #333; margin-bottom: 20px; text-align: center; }
+        .detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .detail-item { background-color: #f8f9fa; padding: 10px; border-radius: 8px; }
+        .detail-label { font-size: 0.9em; color: #666; margin-bottom: 5px; }
+        .detail-value { font-size: 1.1em; color: #333; font-weight: 600; word-wrap: break-word; }
+        .comments-section { grid-column: 1 / -1; }
+        .no-results { text-align: center; padding: 40px; background: #f9fafb; border-radius: 15px; border: 2px dashed #ccc; }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1 class="title">Búsqueda de Registros de Venta</h1>
+        <p class="subtitle">Busca por número de teléfono primario.</p>
+        <div class="search-box">
+            <input type="text" id="phoneInput" class="search-input" placeholder="Ingresa el número primario..."/>
+            <button class="search-btn" onclick="searchPhone()">🔍 Buscar Venta</button>
+        </div>
+        <div id="resultsSection" class="results-section"></div>
+    </div>
+    <script>
+        document.getElementById('phoneInput').addEventListener('keypress', e => { if (e.key === 'Enter') searchPhone(); });
+
+        function formatPhoneNumber(numStr) {
+            if (!numStr) return 'N/A';
+            const cleaned = String(numStr).replace(/\D/g, '');
+            return cleaned.length >= 9 ? `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6)}` : cleaned;
+        }
+
+
+        // function formatDate(dateStr) {
+        //     if (!dateStr) return 'N/A';
+        //    // Se usa UTC para evitar problemas de zona horaria que puedan cambiar la fecha un día.
+        //    return new Date(dateStr).toLocaleDateString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+        // }
+
+
+        // --- FUNCIÓN DE FECHA CORREGIDA ---
+        function formatDate(dateStr) {
+            if (!dateStr) return 'N/A';
+            const date = new Date(dateStr);
+            // Se usa UTC para asegurar que la zona horaria no cambie la fecha
+            const day = String(date.getUTCDate()).padStart(2, '0');
+            const month = String(date.getUTCMonth() + 1).padStart(2, '0'); // Meses son 0-11
+            const year = date.getUTCFullYear();
+            return `${day}/${month}/${year}`;
+        }
+
+
+        function searchPhone() {
+            const phoneInput = document.getElementById('phoneInput');
+            const resultsSection = document.getElementById('resultsSection');
+            const phoneNumber = phoneInput.value.replace(/\D/g, '');
+            if (phoneNumber.length < 9) { alert('Ingresa un número de teléfono válido.'); return; }
+
+            resultsSection.style.display = 'block';
+            resultsSection.innerHTML = `<em>Buscando en registros de ventas...</em>`;
+            
+            fetch(`/api/sales-search?number=${phoneNumber}`)
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            resultsSection.style.display = 'block';
+
+            if (data.error) {
+                 resultsSection.innerHTML = `<div class="result-card" style="border-left-color: #dc3545;"><h3>Error</h3><p>${data.error}</p></div>`;
+                 return;
+            }
+            if (!data.found) {
+                 resultsSection.innerHTML = `<div class="no-results"><h3>Registro No Encontrado</h3><p>Este número no fue encontrado en la base de datos de ventas.</p></div>`;
+                 return;
+            }
+
+
+                                   // --- LÓGICA DE FECHA CORREGIDA ---
+                        let formattedDate = 'N/A';
+                        if (sale.sale_date) {
+                            const date = new Date(sale.sale_date);
+                            const day = String(date.getUTCDate()).padStart(2, '0');
+                            const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                            const year = date.getUTCFullYear();
+                            formattedDate = `${day}/${month}/${year}`;
+                        }
+           
+
+            resultsSection.innerHTML = `
+                <div class="result-card">
+                    <div class="card-header">Detalles de la Venta</div>
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <div class="detail-label">Número Primario</div>
+                            <div class="detail-value">${formatPhoneNumber(data.primary_number)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Número Alternativo</div>
+                            <div class="detail-value">${formatPhoneNumber(data.alternate_number)}</div>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Fecha de Venta</div>
+                            <div class="detail-value">${formattedDate}</p>
+                        </div>
+                        <div class="detail-item">
+                            <div class="detail-label">Proveedor y Commodity</div>
+                            <div class="detail-value">${data.provider || 'N/A'} - ${data.commodity || 'N/A'}</div>
+                        </div>
+                        <div class="detail-item comments-section">
+                            <div class="detail-label">Comentarios</div>
+                            <div class="detail-value">${data.comments || 'Sin comentarios'}</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - Data Processor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search-box {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .search-input {
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            width: 300px;
+            max-width: 100%;
+        }
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+            text-decoration: none;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .results-section {
+            margin: 30px 0;
+            display: none;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .results-table th {
+            background: #007bff;
+            color: white;
+            font-weight: bold;
+        }
+        .results-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+        .results-table tr:hover {
+            background: #e9ecef;
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .dnc-status {
+            padding: 8px 12px;
+            border-radius: 20px;
+            font-size: 14px;
+            font-weight: bold;
+            text-align: center;
+        }
+        .dnc-yes { 
+            background: #f8d7da; 
+            color: #721c24; 
+            border: 2px solid #f5c6cb;
+        }
+        .dnc-no { 
+            background: #d4edda; 
+            color: #155724; 
+            border: 2px solid #c3e6cb;
+        }
+        .comments-cell {
+            max-width: 200px;
+            position: relative;
+        }
+        .comments-preview {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            cursor: pointer;
+            color: #007bff;
+        }
+        .comments-full {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            z-index: 1000;
+            max-width: 300px;
+            white-space: normal;
+        }
+        .export-section {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+            display: none;
+        }
+        .commodity-provider {
+            font-weight: bold;
+            color: #495057;
+        }
+        .results-summary {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 15px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Search Records</h1>
+        
+        <div class="search-box">
+            <h2>Search by Number</h2>
+            <form id="search-form">
+                <input type="text" id="search-number" class="search-input" placeholder="Enter number..." required>
+                <br><br>
+                <button type="submit" class="btn btn-primary">Search</button>
+                <button type="button" class="btn btn-secondary" onclick="clearResults()">Clear</button>
+            </form>
+        </div>
+        
+        <div class="results-section" id="results-section">
+            <h2>Search Results</h2>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <span class="spinner"></span>
+                Searching...
+            </div>
+            
+            <div id="results-summary" class="results-summary" style="display: none;">
+                <!-- Results summary will appear here -->
+            </div>
+            
+            <div id="results-container">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div class="export-section" id="export-section">
+                <h3>Export Results</h3>
+                <button class="btn btn-success" onclick="exportResults('csv')">Export as CSV</button>
+                <button class="btn btn-success" onclick="exportResults('xlsx')">Export as XLSX</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/admin" class="btn btn-secondary">Admin Panel</a>
+            <a href="/" class="btn btn-secondary">Home</a>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+        
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearch();
+        });
+        
+        function performSearch() {
+            const number = document.getElementById('search-number').value.trim();
+            if (!number) return;
+            
+            // Show loading
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('export-section').style.display = 'none';
+            document.getElementById('results-summary').style.display = 'none';
+            
+            // Perform search
+            fetch(`/api/search?number=${encodeURIComponent(number)}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    displayResults(data.results || []);
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results-container').innerHTML = 
+                        '<div class="no-results">Error occurred during search. Please try again.</div>';
+                    console.error('Search error:', error);
+                });
+        }
+        
+        function displayResults(results) {
+            currentResults = results;
+            const container = document.getElementById('results-container');
+            const summary = document.getElementById('results-summary');
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div class="no-results">No records found for this number.</div>';
+                return;
+            }
+            
+            // Show summary
+            summary.innerHTML = `Found ${results.length} record(s) for number ${document.getElementById('search-number').value}`;
+            summary.style.display = 'block';
+            
+            let html = '<table class="results-table">';
+            html += `
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>State</th>
+                        <th>DNC Status</th>
+                        <th>Commodity - Provider</th>
+                        <th>Sale Status</th>
+                        <th>Sale Date</th>
+                        <th>Comments</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            results.forEach((result, index) => {
+                // DNC Status
+                let dncStatus = result.is_dnc === true ? 'YES' : 'NO';
+                let dncClass = result.is_dnc === true ? 'dnc-yes' : 'dnc-no';
+                
+                // Sale Status
+                let saleStatus = 'Pending';
+                let statusClass = 'status-pending';
+                
+                if (result.sale_status === true) {
+                    saleStatus = 'Done';
+                    statusClass = 'status-done';
+                } else if (result.sale_status === false) {
+                    saleStatus = 'Rejected';
+                    statusClass = 'status-rejected';
+                }
+                
+                // Commodity Provider
+                let commodityProvider = result.commodity_provider || 
+                    (result.commodity || result.provider ? 
+                        `${result.commodity || ''} - ${result.provider || ''}`.replace(' - ', ' - ').replace(/^- |^$/, 'N/A') : 
+                        'N/A');
+                
+                // Comments with expand functionality
+                let comments = result.comments || 'N/A';
+                let commentsHtml = comments;
+                
+                if (comments !== 'N/A' && comments.length > 50) {
+                    commentsHtml = `
+                        <div class="comments-preview" onclick="toggleComments(${index})">
+                            ${comments.substring(0, 50)}...
+                        </div>
+                        <div class="comments-full" id="comments-${index}">
+                            ${comments}
+                            <br><small><em>Click to close</em></small>
+                        </div>
+                    `;
+                }
+                
+                html += `
+                    <tr>
+                        <td><strong>${result.number}</strong></td>
+                        <td>${result.state || 'N/A'}</td>
+                        <td><span class="dnc-status ${dncClass}">${dncStatus}</span></td>
+                        <td class="commodity-provider">${commodityProvider}</td>
+                        <td><span class="sale-status ${statusClass}">${saleStatus}</span></td>
+                        <td>${result.sale_date || 'N/A'}</td>
+                        <td class="comments-cell">${commentsHtml}</td>
+                    </tr>
+                `;
+            });
+                let statusClass = 'status-pending';
+                
+                if (result.sale_status === true) {
+                    saleStatus = 'Done';
+                    statusClass = 'status-done';
+                } else if (result.sale_status === false) {
+                    saleStatus = 'Rejected';
+                    statusClass = 'status-rejected';
+                }
+                
+                // Use the combined commodity_provider field, or fallback to individual fields
+                let commodityProvider = result.commodity_provider || 
+                    (result.commodity || result.provider ? 
+                        `${result.commodity || ''} - ${result.provider || ''}`.replace(' - ', ' - ').replace(/^- |^$/, 'N/A') : 
+                        'N/A');
+                
+                html += `
+                    <tr>
+                        <td><strong>${result.number}</strong></td>
+                        <td>${result.state || 'N/A'}</td>
+                        <td class="commodity-provider">${commodityProvider}</td>
+                        <td><span class="sale-status ${statusClass}">${saleStatus}</span></td>
+                        <td>${result.sale_date || 'N/A'}</td>
+                        <td>${result.comments || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            // Show export options
+            document.getElementById('export-section').style.display = 'block';
+        }
+        
+        function clearResults() {
+            document.getElementById('search-number').value = '';
+            document.getElementById('results-section').style.display = 'none';
+            currentResults = [];
+        }
+        
+        function exportResults(format) {
+            if (currentResults.length === 0) {
+                alert('No results to export');
+                return;
+            }
+            
+            const number = document.getElementById('search-number').value;
+            const params = new URLSearchParams({
+                number: number,
+                format: format
+            });
+            
+            // Create download link
+            const url = `/export?${params.toString()}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `search_results_${number}.${format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+        
+        // Allow Enter key to search
+        document.getElementById('search-number').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                performSearch();
+            }
+        });
+    </script>
+</body>
+</html>
+

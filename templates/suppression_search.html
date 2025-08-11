@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Búsqueda Combinada</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .search-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
+        .title { font-size: 2em; color: #333; margin-bottom: 10px; }
+        .search-box { margin: 30px 0; }
+        .search-input { width: 100%; padding: 20px; font-size: 1.2em; border: 2px solid #e0e0e0; border-radius: 15px; text-align: center; margin-bottom: 20px; }
+        .search-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 40px; font-size: 1.1em; border-radius: 25px; cursor: pointer; }
+        .results-section { margin-top: 40px; display: none; text-align: left; }
+        .result-card { background: white; border-radius: 15px; padding: 25px; margin: 20px 0; border-left: 5px solid #667eea; }
+        .phone-number { font-size: 1.6em; font-weight: bold; color: #333; margin-bottom: 20px; text-align: center; }
+        .status-section { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
+        .status-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .status-title { font-size: 1.1em; font-weight: 600; }
+        .status-tag { padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
+        .status-red { background: #fee2e2; color: #dc2626; }
+        .status-green { background: #dcfce7; color: #16a34a; }
+        .detail-item { display: flex; justify-content: space-between; padding: 8px 0; }
+        .no-results { text-align: center; padding: 40px; background: #f9fafb; border-radius: 15px; border: 2px dashed #16a34a; }
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <h1 class="title">Búsqueda Combinada</h1>
+        <div class="search-box">
+            <input type="text" id="phoneInput" class="search-input" placeholder="Ingresa un número de teléfono..."/>
+            <button id="searchBtn" class="search-btn" onclick="searchPhone()">🔍 Buscar</button>
+        </div>
+        <div id="resultsSection" class="results-section"></div>
+    </div>
+    <script>
+        document.getElementById('phoneInput').addEventListener('keypress', e => { if (e.key === 'Enter') searchPhone(); });
+        function formatPhoneNumber(number) { 
+            const cleaned = String(number).replace(/\D/g, '');
+            return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
+        }
+        
+        function searchPhone() {
+            const phoneInput = document.getElementById('phoneInput');
+            const resultsSection = document.getElementById('resultsSection');
+            const phoneNumber = phoneInput.value.replace(/\D/g, '');
+            if (phoneNumber.length < 9) { alert('Ingresa un número de teléfono válido.'); return; }
+            resultsSection.style.display = 'block';
+            resultsSection.innerHTML = `<em>Buscando...</em>`;
+            
+            fetch(`/api/suppression-search?number=${encodeURIComponent(phoneNumber)}`)
+                .then(response => response.json())
+                .then(data => displayResults(data));
+        }
+
+        function displayResults(data) {
+            const resultsSection = document.getElementById('resultsSection');
+            
+            if (data.error) {
+                resultsSection.innerHTML = `<div class="result-card" style="border-left-color: #dc3545;"><h3>Error</h3><p>${data.error}</p></div>`;
+                return;
+            }
+
+            if (!data.found) {
+                resultsSection.innerHTML = `<div class="no-results"><h3>✅ Número Limpio</h3><p>No se encontró en las listas de DNC o Supresión.</p></div>`;
+                return;
+            }
+            
+            // --- LÓGICA CORREGIDA ---
+            let dncHtml;
+            // La corrección es simple: solo verificamos si el objeto data.dnc_status existe.
+            if (data.dnc_status) {
+                dncHtml = `
+                    <div class="status-header">
+                        <span class="status-title">Estado DNC</span>
+                        <span class="status-tag status-red">🚫 En Lista</span>
+                    </div>
+                    <div class="detail-item"><span>Estado:</span> <strong>${data.dnc_status.state || 'N/A'}</strong></div>`;
+            } else {
+                dncHtml = `
+                    <div class="status-header">
+                        <span class="status-title">Estado DNC</span>
+                        <span class="status-tag status-green">✅ Limpio</span>
+                    </div>`;
+            }
+
+            let suppressionHtml;
+            // La misma corrección aquí.
+            if (data.suppression_status) {
+                suppressionHtml = `
+                    <div class="status-header">
+                        <span class="status-title">Estado de Supresión</span>
+                        <span class="status-tag status-red">🚫 Suprimido</span>
+                    </div>
+                    <div class="detail-item"><span>Commodity:</span> <strong>${data.suppression_status.commodity || 'N/A'}</strong></div>`;
+            } else {
+                suppressionHtml = `
+                    <div class="status-header">
+                        <span class="status-title">Estado de Supresión</span>
+                        <span class="status-tag status-green">✅ Limpio</span>
+                    </div>`;
+            }
+            
+            resultsSection.innerHTML = `
+                <div class="result-card">
+                    <div class="phone-number">${formatPhoneNumber(data.search_number)}</div>
+                    <div class="status-section">${dncHtml}</div>
+                    <div class="status-section">${suppressionHtml}</div>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>

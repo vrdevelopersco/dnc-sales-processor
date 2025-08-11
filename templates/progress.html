@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search - Data Processor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .search-box {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        .search-input {
+            padding: 15px;
+            font-size: 18px;
+            border: 2px solid #007bff;
+            border-radius: 5px;
+            width: 300px;
+            max-width: 100%;
+        }
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 5px;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .results-section {
+            margin: 30px 0;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 20px 0;
+        }
+        .results-table th,
+        .results-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .results-table th {
+            background: #007bff;
+            color: white;
+        }
+        .results-table tr:hover {
+            background: #f5f5f5;
+        }
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+        }
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #007bff;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .sale-status {
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .status-done { background: #d4edda; color: #155724; }
+        .status-rejected { background: #f8d7da; color: #721c24; }
+        .export-section {
+            background: #e9ecef;
+            padding: 20px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Search Records</h1>
+        
+        <div class="search-box">
+            <h2>Search by Number</h2>
+            <form id="search-form">
+                <input type="text" id="search-number" class="search-input" placeholder="Enter number..." required>
+                <br><br>
+                <button type="submit" class="btn btn-primary">Search</button>
+                <button type="button" class="btn btn-secondary" onclick="clearResults()">Clear</button>
+            </form>
+        </div>
+        
+        <div class="results-section" id="results-section" style="display: none;">
+            <h2>Search Results</h2>
+            
+            <div id="loading" class="loading" style="display: none;">
+                <span class="spinner"></span>
+                Searching...
+            </div>
+            
+            <div id="results-container">
+                <!-- Results will be populated here -->
+            </div>
+            
+            <div class="export-section" id="export-section" style="display: none;">
+                <h3>Export Results</h3>
+                <button class="btn btn-primary" onclick="exportResults('csv')">Export as CSV</button>
+                <button class="btn btn-primary" onclick="exportResults('xlsx')">Export as XLSX</button>
+            </div>
+        </div>
+        
+        <div style="margin-top: 30px;">
+            <a href="/admin" class="btn btn-secondary">Admin Panel</a>
+            <a href="/" class="btn btn-secondary">Home</a>
+        </div>
+    </div>
+
+    <script>
+        let currentResults = [];
+        
+        document.getElementById('search-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearch();
+        });
+        
+        function performSearch() {
+            const number = document.getElementById('search-number').value.trim();
+            if (!number) return;
+            
+            // Show loading
+            document.getElementById('results-section').style.display = 'block';
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results-container').innerHTML = '';
+            document.getElementById('export-section').style.display = 'none';
+            
+            // Perform search
+            fetch(`/api/search?number=${encodeURIComponent(number)}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('loading').style.display = 'none';
+                    displayResults(data.results || []);
+                })
+                .catch(error => {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('results-container').innerHTML = 
+                        '<div class="no-results">Error occurred during search. Please try again.</div>';
+                    console.error('Search error:', error);
+                });
+        }
+        
+        function displayResults(results) {
+            currentResults = results;
+            const container = document.getElementById('results-container');
+            
+            if (results.length === 0) {
+                container.innerHTML = '<div class="no-results">No records found for this number.</div>';
+                return;
+            }
+            
+            let html = '<table class="results-table">';
+            html += `
+                <thead>
+                    <tr>
+                        <th>Number</th>
+                        <th>State</th>
+                        <th>Commodity/Provider</th>
+                        <th>Sale Status</th>
+                        <th>Sale Date</th>
+                        <th>Comments</th>
+                    </tr>
+                </thead>
+                <tbody>
+            `;
+            
+            results.forEach(result => {
+                const saleStatus = result.sale_status ? 'Done' : 'Rejected';
+                const statusClass = result.sale_status ? 'status-done' : 'status-rejected';
+                
+                html += `
+                    <tr>
+                        <td>${result.number}</td>
+                        <td>${result.state || 'N/A'}</td>
+                        <td>${result.commodity || 'N/A'}</td>
+                        <td><span class="sale-status ${statusClass}">${saleStatus}</span></td>
+                        <td>${result.sale_date || 'N/A'}</td>
+                        <td>${result.comments || 'N/A'}</td>
+                    </tr>
+                `;
+            });
+            
+            html += '</tbody></table>';
+            container.innerHTML = html;
+            
+            // Show export options
+            document.getElementById('export-section').style.display = 'block';
+        }
+        
+        function clearResults() {
+            document.getElementById('search-number').value = '';
+            document.getElementById('results-section').style.display = 'none';
+            currentResults = [];
+        }
+        
+        function exportResults(format) {
+            if (currentResults.length === 0) {
+                alert('No results to export');
+                return;
+            }
+            
+            const number = document.getElementById('search-number').value;
+            const params = new URLSearchParams({
+                number: number,
+                format: format
+            });
+            
+            // Create download link
+            const url = `/export?${params.toString()}`;
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `search_results_${number}.${format}`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+    </script>
+</body>
+</html>
+
