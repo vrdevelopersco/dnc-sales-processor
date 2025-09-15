@@ -8,15 +8,22 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: Arial, sans-serif;
+            background: #1a1a2e;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
             padding: 20px;
         }
-        
+
+        canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
         .main-container {
             background: rgba(255, 255, 255, 0.95);
             backdrop-filter: blur(10px);
@@ -99,6 +106,17 @@
             box-shadow: 0 15px 35px rgba(52, 58, 64, 0.4);
         }
         
+
+        .btn-info {
+            background: linear-gradient(135deg, #17a2b8 0%, #21c4b4 100%);
+            color: white;
+            box-shadow: 0 10px 25px rgba(23, 162, 184, 0.3);
+        }
+
+        .btn-info:hover {
+            box-shadow: 0 15px 35px rgba(23, 162, 184, 0.4);
+        }
+        
         .btn-admin {
             background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
             color: white;
@@ -119,6 +137,7 @@
             padding-top: 30px;
             border-top: 1px solid #e0e0e0;
             color: #666;
+
         }
         
         @media (max-width: 768px) {
@@ -129,15 +148,21 @@
     </style>
 </head>
 <body>
+      <canvas id="rainCanvas"></canvas>
     <div class="main-container">
         <div class="logo">📞</div>
-        <h1 class="title">Brighting Solutions</h1>
+        <h1 class="title"><strong>Brighting Solutions</strong></h1>
         <p class="subtitle">Data Verification & Processing</p>
         
         <div class="buttons-container">
             <a href="{{ url_for('suppression_search') }}" class="btn btn-suppression">
                 <span class="btn-icon">🔍</span>
                 Combined Search (DNC + Suppression)
+            </a>
+
+            <a href="{{ url_for('tcpa_search') }}" class="btn btn-info">
+                <span class="btn-icon">🕵️</span>
+                DNC TCPA Live Search
             </a>
 
             <a href="{{ url_for('dnc_search') }}" class="btn btn-dnc">
@@ -160,5 +185,73 @@
             <div>IT Department</div>
         </div>
     </div>
+
+    <script>
+    const canvas = document.getElementById('rainCanvas');
+    const ctx = canvas.getContext('2d');
+
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+
+    window.addEventListener('resize', () => {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    });
+
+    let drops = [];
+    const dropCount = 300;
+
+    for (let i = 0; i < dropCount; i++) {
+      drops.push({
+        x: Math.random() * canvas.width,
+        y: Math.random() * canvas.height,
+        length: 10 + Math.random() * 15,
+        speed: 2 + Math.random() * 4
+      });
+    }
+
+    function draw() {
+      // Fondo degradado oscuro
+      let gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+      gradient.addColorStop(0, "#1a1a2e");
+      gradient.addColorStop(1, "#3a3a5a");
+      ctx.fillStyle = gradient;
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Montañas (simple silueta)
+      ctx.fillStyle = "#2c2c3c";
+      ctx.beginPath();
+      ctx.moveTo(0, canvas.height);
+      ctx.lineTo(200, canvas.height - 150);
+      ctx.lineTo(400, canvas.height - 100);
+      ctx.lineTo(600, canvas.height - 180);
+      ctx.lineTo(canvas.width, canvas.height - 120);
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.closePath();
+      ctx.fill();
+
+      // Gotas
+      ctx.strokeStyle = "rgba(200, 200, 255, 0.4)";
+      ctx.lineWidth = 1;
+      for (let drop of drops) {
+        ctx.beginPath();
+        ctx.moveTo(drop.x, drop.y);
+        ctx.lineTo(drop.x, drop.y + drop.length);
+        ctx.stroke();
+
+        drop.y += drop.speed;
+        if (drop.y > canvas.height) {
+          drop.y = -drop.length;
+          drop.x = Math.random() * canvas.width;
+        }
+      }
+
+      requestAnimationFrame(draw);
+    }
+
+    draw();
+  </script>
+
+
 </body>
 </html>
