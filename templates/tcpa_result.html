@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado de Búsqueda TCPA</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #17a2b8 0%, #21c4b4 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+        .search-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
+        .loader { border: 5px solid #f3f3f3; border-top: 5px solid var(--primary-color); border-radius: 50%; width: 50px; height: 50px; animation: spin 1s linear infinite; margin: 20px auto; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .result-card { background: white; border-radius: 15px; padding: 25px; margin: 20px 0; text-align: left; border-left: 5px solid #17a2b8;}
+        .detail-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        .detail-item:last-child { border-bottom: none; }
+        .no-results { text-align: center; padding: 40px; background: #f9fafb; border-radius: 15px; border: 2px dashed #ccc; }
+        .btn { background: #6c757d; color: white; padding: 10px 20px; border-radius: 25px; text-decoration: none; display: inline-block; margin-top: 20px;}
+    </style>
+</head>
+<body>
+    <div class="search-container">
+        <div id="result-content">
+            <h2 id="status-message">Iniciando búsqueda...</h2>
+            <div id="loader" class="loader"></div>
+            <p id="status-details" style="color: #666;"></p>
+        </div>
+    </div>
+
+    <script>
+        const jobId = "{{ job_id }}";
+        const statusMessage = document.getElementById('status-message');
+        const statusDetails = document.getElementById('status-details');
+        const loaderElement = document.getElementById('loader');
+        const resultContent = document.getElementById('result-content');
+
+        const pollStatus = setInterval(() => {
+            fetch(`/api/tcpa-status/${jobId}`)
+                .then(response => response.json())
+                .then(data => {
+                    statusMessage.textContent = data.status.charAt(0).toUpperCase() + data.status.slice(1);
+                    statusDetails.textContent = data.message;
+
+                    if (data.status === 'completed' || data.status === 'failed') {
+                        clearInterval(pollStatus);
+                        loaderElement.style.display = 'none';
+                        
+                        let html = `<h2>Resultado de la Búsqueda</h2>`;
+                        if (data.status === 'completed' && data.result && data.result.found) {
+                            html += '<div class="result-card">';
+                            for (const [key, value] of Object.entries(data.result)) {
+                                if (key !== 'found') {
+                                    html += `<div class="detail-item"><span><strong>${key}:</strong></span><span>${value}</span></div>`;
+                                }
+                            }
+                            html += '</div>';
+                        } else {
+                            html += `<div class="no-results"><p>${data.message}</p></div>`;
+                        }
+                        html += "<br><a href='{{ url_for('tcpa_search') }}' class='btn'>Hacer Otra Búsqueda</a>";
+                        resultContent.innerHTML = html;
+                    }
+                });
+        }, 3000); // Revisa el estado cada 3 segundos
+    </script>
+</body>
+</html>
+

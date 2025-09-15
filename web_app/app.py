@@ -40,7 +40,7 @@ UPLOAD_FOLDER = '/media/bodega/procesador/uploads'
 SAFE_STORAGE = '/media/bodega/procesador/safe_storage'
 ALLOWED_EXTENSIONS = {'txt', 'xlsx', 'csv'}
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-ALLOWED_IPS = ['127.0.0.1', '186.115.102.248'] # Asegúrate de que tu IP esté aquí
+ALLOWED_IPS = ['127.0.0.1', '186.115.102.248', '192.168.1.25'] # Asegúrate de que tu IP esté aquí
 
 # --- FUNCIONES DE AYUDA Y DECORADORES ---
 def get_real_ip():
@@ -318,6 +318,7 @@ def api_suppression_search():
     
         
 
+# --- RUTA DE BÚSQUEDA DE VENTAS CORREGIDA ---
 @app.route('/api/sales-search')
 @apply_security_rules
 def api_sales_search():
@@ -326,16 +327,34 @@ def api_sales_search():
     try:
         search_number = int(''.join(filter(str.isdigit, number)))
         engine = create_engine('postgresql://anakin0:dejameacuerdo@localhost:5432/dnc_processor')
-        with engine.connect() as conn:
-            result = conn.execute(text("SELECT * FROM sales_records WHERE primary_number = :number"), {'number': search_number}).fetchone()
-        if result:
-            res_data = result._asdict()
-            if res_data.get('sale_date'): res_data['sale_date'] = res_data['sale_date'].isoformat()
-            return jsonify({'found': True, **res_data})
-        else: return jsonify({'found': False})
-    except Exception as e:
-        logger.error(f"Error en búsqueda de ventas: {e}"); return jsonify({'error': 'Error del servidor'}), 500
         
+        sales_res = None
+        with engine.connect() as conn:
+            # Lógica clonada de la Búsqueda Maestra para máxima fiabilidad
+            try:
+                sales_q = conn.execute(text("SELECT * FROM sales_records WHERE primary_number = :num"), {'num': search_number}).fetchone()
+                if sales_q:
+                    sales_res = sales_q._asdict()
+                    if sales_res.get('sale_date'):
+                        sales_res['sale_date'] = sales_res['sale_date'].isoformat()
+            except ProgrammingError:
+                pass # Ignora si la tabla no existe
+
+        # Construye la respuesta final
+        if sales_res:
+            response_data = {'found': True, **sales_res}
+        else:
+            response_data = {'found': False}
+            
+        # LOG DE DIAGNÓSTICO CLAVE
+        logger.info(f"### DEBUG ### Respuesta JSON final para sales-search: {response_data}")
+        
+        return jsonify(response_data)
+            
+    except Exception as e:
+        logger.error(f"Error en la búsqueda de ventas: {e}\n{traceback.format_exc()}")
+        return jsonify({'error': 'Error del servidor durante la búsqueda.'}), 500
+
 
 @app.route('/api/master-search')
 @require_admin()
@@ -385,6 +404,45 @@ def api_quick_check():
             return jsonify({'table_name': table_name, 'records': records})
     except Exception as e:
         logger.error(f"Error en Quick Check para {table_name}: {e}"); return jsonify({'error': str(e)}), 500
+
+
+# nueva funcion de busqueda TCPA
+@app.route('/tcpa-search', methods=['GET', 'POST'])
+def tcpa_search():
+    if request.method == 'POST':
+        phone_number = request.form.get('phone_number', '').replace('-', '')
+        if not phone_number.isdigit() or len(phone_number) != 10:
+            flash('Por favor, ingresa un número de 10 dígitos válido.', 'error')
+            return render_template('tcpa_search.html')
+
+        job_id = str(uuid.uuid4())
+        
+        # Inicia el estado en Redis
+        redis_client.setex(f'job:{job_id}', 3600, json.dumps({'status': 'queued'}))
+        
+        # Lanza el script de Selenium en un hilo separado
+        script_path = '/media/bodega/procesador/scripts/run_tcpa_search.py'
+        venv_python = '/media/bodega/procesador/bin/python'
+        
+        # OJO: Los argumentos ahora son job_id y el número
+        args = [venv_python, script_path, job_id, phone_number]
+        thread = threading.Thread(target=subprocess.run, args=(args,))
+        thread.daemon = True
+        thread.start()
+        
+        return redirect(url_for('tcpa_result', job_id=job_id))
+        
+    return render_template('tcpa_search.html')
+
+@app.route('/tcpa-result/<job_id>')
+def tcpa_result(job_id):
+    return render_template('tcpa_result.html', job_id=job_id)
+
+@app.route('/api/tcpa-status/<job_id>')
+def api_tcpa_status(job_id):
+    job_data = redis_client.get(f'job:{job_id}')
+    return jsonify(json.loads(job_data)) if job_data else ({'status': 'not_found'}, 404)
+
 
 # --- EJECUCIÓN PRINCIPAL ---
 if __name__ == '__main__':
