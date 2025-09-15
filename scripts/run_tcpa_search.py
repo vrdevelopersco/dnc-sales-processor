@@ -1,17 +1,15 @@
-# /media/bodega/procesador/scripts/run_tcpa_search.py
-import sys, json, redis
+# /media/bodega/procesador/scripts/run_tcpa_search.py --- VERSIÓN MODERNIZADA ---
+import sys
+import json
+import redis
+import traceback
+import tempfile, shutil, time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
-
-# make some room for webdriver cache
-CACHE_PATH = "/media/bodega/procesador/webdriver_cache"
-os.makedirs(CACHE_PATH, exist_ok=True)
-
 
 def buscar_y_guardar(numero_a_buscar, job_id):
     redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
@@ -20,22 +18,37 @@ def buscar_y_guardar(numero_a_buscar, job_id):
         job_data = {'status': status, 'message': message, 'result': result}
         redis_client.setex(f'job:{job_id}', 21600, json.dumps(job_data))
 
-    update_status('processing', 'Iniciando navegador...')
+# --- LÓGICA DE LIMPIEZA DE CACHÉ ---
+    # 1. Crear un directorio de perfil temporal y único para esta búsqueda
+    temp_profile_dir = tempfile.mkdtemp()
+    
+    update_status('processing', 'Iniciando navegador en modo limpio...')
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument('--no-sandbox')
     options.add_argument('--disable-dev-shm-usage')
+    options.add_argument('--disable-gpu')
+    options.add_argument("--window-size=1920x1080")
     options.add_argument('--log-level=3')
+    # 2. Forzar al navegador a usar este nuevo perfil vacío
+    options.add_argument(f"--user-data-dir={temp_profile_dir}")
+    options.add_argument(f"--disk-cache-dir={temp_profile_dir}/cache")
+    # --- FIN DE LA LÓGICA DE LIMPIEZA ---
+
     driver = None
-    
     try:
-        # let's use a cached version of chromedriver
-        # so our approach is faster and more reliable
-        driver_path = ChromeDriverManager(path=CACHE_PATH).install()
-        driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
+
+        # --- LÓGICA DE INICIO MODERNIZADA ---
+        # Dejamos que Selenium gestione el driver automáticamente. Es más estable.
+        service = ChromeService()
+        driver = webdriver.Chrome(service=service, options=options)
+        # --- FIN DE LA LÓGICA MODERNIZADA ---
         
+        time.sleep(2)
+
+        update_status('processing', 'Navegador iniciado. Accediendo a la página...')
         driver.get("https://tcpalitigatorlist.com/")
-        wait = WebDriverWait(driver, 20)
+        wait = WebDriverWait(driver, 25)
 
         update_status('processing', 'Página cargada. Rellenando formulario...')
         wait.until(EC.element_to_be_clickable((By.ID, "snlu_phone_number"))).send_keys(numero_a_buscar)
@@ -65,7 +78,8 @@ def buscar_y_guardar(numero_a_buscar, job_id):
         update_status('completed', "Búsqueda finalizada con éxito.", resultado)
 
     except Exception as e:
-        update_status('failed', f"Ocurrió un error: {e}")
+        error_details = traceback.format_exc()
+        update_status('failed', f"Ocurrió un error: {e}\n{error_details}")
     finally:
         if driver:
             driver.quit()
@@ -74,4 +88,3 @@ if __name__ == "__main__":
     job_id_arg = sys.argv[1]
     numero_arg = sys.argv[2]
     buscar_y_guardar(numero_arg, job_id_arg)
-

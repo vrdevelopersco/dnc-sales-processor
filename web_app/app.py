@@ -42,7 +42,7 @@ ALLOWED_EXTENSIONS = {'txt', 'xlsx', 'csv'}
 redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
 ALLOWED_IPS = ['127.0.0.1', '186.115.102.248', '192.168.1.25'] # Asegúrate de que tu IP esté aquí
 
-# --- FUNCIONES DE AYUDA Y DECORADORES ---
+# correccion del decorador de seguridad
 def get_real_ip():
     if 'CF-Connecting-IP' in request.headers: return request.headers['CF-Connecting-IP']
     return request.remote_addr
@@ -74,13 +74,29 @@ def apply_security_rules(func):
 
         if is_weekday or is_saturday:
             response = func(*args, **kwargs)
-            if response.is_json and response.status_code == 200:
+            if hasattr(response, 'is_json') and response.is_json and response.status_code == 200:
+                searched_number = request.args.get('number', 'N/A')
+                user_agent = request.headers.get('User-Agent', 'Unknown')
                 audit_logger.info(f"ÉXITO - IP: {ip_address}, Búsqueda: {searched_number}, Cliente: {user_agent}")
             return response
         else:
+            searched_number = request.args.get('number', 'N/A')
+            user_agent = request.headers.get('User-Agent', 'Unknown')
             audit_logger.warning(f"BLOQUEADO (Fuera de Horario) - IP: {ip_address}, Intento: {searched_number}, Cliente: {user_agent}")
             return jsonify({'error': 'Acceso denegado: Fuera del horario laboral'}), 403
+
     return decorated_function
+
+@app.after_request
+def add_header(response):
+    """
+    Añade cabeceras a cada respuesta para evitar el caché.
+    """
+    response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, post-check=0, pre-check=0, max-age=0'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '-1'
+    return response
+
 
 def move_to_safe_storage(uploaded_file_path, file_type):
     filename = os.path.basename(uploaded_file_path)
