@@ -8,12 +8,17 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 
+# make some room for webdriver cache
+CACHE_PATH = "/media/bodega/procesador/webdriver_cache"
+os.makedirs(CACHE_PATH, exist_ok=True)
+
+
 def buscar_y_guardar(numero_a_buscar, job_id):
     redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
     
     def update_status(status, message, result=None):
         job_data = {'status': status, 'message': message, 'result': result}
-        redis_client.setex(f'job:{job_id}', 3600, json.dumps(job_data))
+        redis_client.setex(f'job:{job_id}', 21600, json.dumps(job_data))
 
     update_status('processing', 'Iniciando navegador...')
     options = webdriver.ChromeOptions()
@@ -24,7 +29,11 @@ def buscar_y_guardar(numero_a_buscar, job_id):
     driver = None
     
     try:
-        driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+        # let's use a cached version of chromedriver
+        # so our approach is faster and more reliable
+        driver_path = ChromeDriverManager(path=CACHE_PATH).install()
+        driver = webdriver.Chrome(service=ChromeService(driver_path), options=options)
+        
         driver.get("https://tcpalitigatorlist.com/")
         wait = WebDriverWait(driver, 20)
 

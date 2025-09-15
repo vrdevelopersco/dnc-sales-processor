@@ -408,7 +408,19 @@ def api_quick_check():
 
 # nueva funcion de busqueda TCPA
 @app.route('/tcpa-search', methods=['GET', 'POST'])
+@apply_security_rules
 def tcpa_search():
+
+    # Verifica si ya hay una búsqueda en progreso
+    # si hay una búsqueda en progreso, no puedo permitir más busquedas hasta que termine
+    active_job_key = redis_client.get('active_tcpa_job')
+    if active_job_key:
+        active_job_data = redis_client.get(active_job_key)
+        if active_job_data and json.loads(active_job_data).get('status') == 'processing':
+            flash('Ya hay una búsqueda en progreso. Por favor, espera a que termine.', 'warning')
+            return render_template('tcpa_search.html')
+
+
     if request.method == 'POST':
         phone_number = request.form.get('phone_number', '').replace('-', '')
         if not phone_number.isdigit() or len(phone_number) != 10:
@@ -416,10 +428,12 @@ def tcpa_search():
             return render_template('tcpa_search.html')
 
         job_id = str(uuid.uuid4())
+        job_key = f'job:{job_id}' # Use a consistent key format
         
-        # Inicia el estado en Redis
-        redis_client.setex(f'job:{job_id}', 3600, json.dumps({'status': 'queued'}))
-        
+        # inicia una nueva búsqueda
+        redis_client.set('active_tcpa_job', job_key, ex=3600) # Set with 1-hour expiry        
+        redis_client.setex(job_key, 21600, json.dumps({'status': 'queued', 'message': 'Tarea en cola...'}))
+
         # Lanza el script de Selenium en un hilo separado
         script_path = '/media/bodega/procesador/scripts/run_tcpa_search.py'
         venv_python = '/media/bodega/procesador/bin/python'
