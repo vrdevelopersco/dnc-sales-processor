@@ -15,6 +15,22 @@ from werkzeug.utils import secure_filename
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import ProgrammingError
 
+# aqui aja #tusabes #padrelinero
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service as ChromeService
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from bs4 import BeautifulSoup
+
+
+# En app.py, al principio
+import sys
+# Esta es la forma más robusta de importar un script de una carpeta hermana.
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from scripts import run_tcpa_search as tcpa_script
+
+
 # --- CONFIGURACIÓN DEL LOG PRINCIPAL ---
 log_dir = '/media/bodega/procesador/logs'
 os.makedirs(log_dir, exist_ok=True)
@@ -422,47 +438,64 @@ def api_quick_check():
         logger.error(f"Error en Quick Check para {table_name}: {e}"); return jsonify({'error': str(e)}), 500
 
 
-# nueva funcion de busqueda TCPA
-@app.route('/tcpa-search', methods=['GET', 'POST'])
+# nueva funcion de busqueda TCPA SIMPLE
+@app.route('/tcpa-search-simple', methods=['GET', 'POST'])
 @apply_security_rules
-def tcpa_search():
-
-    # Verifica si ya hay una búsqueda en progreso
-    # si hay una búsqueda en progreso, no puedo permitir más busquedas hasta que termine
-    active_job_key = redis_client.get('active_tcpa_job')
-    if active_job_key:
-        active_job_data = redis_client.get(active_job_key)
-        if active_job_data and json.loads(active_job_data).get('status') == 'processing':
-            flash('Ya hay una búsqueda en progreso. Por favor, espera a que termine.', 'warning')
-            return render_template('tcpa_search.html')
-
+def tcpa_search_simple():
+    # Usamos una clave en Redis como "cerrojo"
+    lock_key = "tcpa_search_lock"
+    
+    # Comprobar si alguien ya está usando la herramienta
+    if redis_client.get(lock_key):
+        flash("El buscador está ocupado por otro usuario. Por favor, inténtalo en un minuto.", "warning")
+        return render_template('tcpa_search_simple.html', is_busy=True)
 
     if request.method == 'POST':
         phone_number = request.form.get('phone_number', '').replace('-', '')
-        if not phone_number.isdigit() or len(phone_number) != 10:
-            flash('Por favor, ingresa un número de 10 dígitos válido.', 'error')
+        if not phone_number.isdigit() or len(phone_number) < 9:
+            flash('Por favor, ingresa un número válido.', 'error')
+            return render_template('tcpa_search_simple.html')
+
+        try:
+            # Ponemos el "cerrojo" con un tiempo de vida de 90 segundos
+            redis_client.set(lock_key, "busy", ex=90)
+            
+            # Ejecutamos la búsqueda directamente (esto bloqueará la app)
+            resultado = tcpa_script.buscar_numero(phone_number)
+            
+            return render_template('tcpa_search_simple.html', resultado=resultado)
+            
+        finally:
+            # Quitamos el "cerrojo" sin importar lo que pase
+            redis_client.delete(lock_key)
+
+    return render_template('tcpa_search_simple.html', is_busy=False)
+
+
+@app.route('/tcpa-search', methods=['GET', 'POST'])
+# @apply_security_rules # Puedes descomentar esto cuando todo funcione
+def tcpa_search():
+    lock_key = "tcpa_search_lock"
+    
+    if redis_client.get(lock_key):
+        flash("El buscador TCPA está ocupado. Por favor, inténtalo en un minuto.", "warning")
+        return render_template('tcpa_search.html', is_busy=True)
+
+    if request.method == 'POST':
+        phone_number = request.form.get('phone_number', '').replace('-', '')
+        if not phone_number.isdigit() or len(phone_number) < 9:
+            flash('Por favor, ingresa un número válido.', 'error')
             return render_template('tcpa_search.html')
+        try:
+            redis_client.set(lock_key, "busy", ex=90)
+            resultado = tcpa_script.buscar_numero(phone_number)
+            return render_template('tcpa_search.html', resultado=resultado)
+        finally:
+            redis_client.delete(lock_key)
 
-        job_id = str(uuid.uuid4())
-        job_key = f'job:{job_id}' # Use a consistent key format
-        
-        # inicia una nueva búsqueda
-        redis_client.set('active_tcpa_job', job_key, ex=3600) # Set with 1-hour expiry        
-        redis_client.setex(job_key, 21600, json.dumps({'status': 'queued', 'message': 'Tarea en cola...'}))
+    return render_template('tcpa_search.html', is_busy=False)
 
-        # Lanza el script de Selenium en un hilo separado
-        script_path = '/media/bodega/procesador/scripts/run_tcpa_search.py'
-        venv_python = '/media/bodega/procesador/bin/python'
-        
-        # OJO: Los argumentos ahora son job_id y el número
-        args = [venv_python, script_path, job_id, phone_number]
-        thread = threading.Thread(target=subprocess.run, args=(args,))
-        thread.daemon = True
-        thread.start()
-        
-        return redirect(url_for('tcpa_result', job_id=job_id))
-        
-    return render_template('tcpa_search.html')
+
 
 @app.route('/tcpa-result/<job_id>')
 def tcpa_result(job_id):

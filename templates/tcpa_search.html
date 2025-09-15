@@ -2,7 +2,6 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Búsqueda TCPA</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -13,19 +12,44 @@
         .search-box { margin: 30px 0; }
         .search-input { width: 100%; padding: 20px; font-size: 1.2em; border: 2px solid #e0e0e0; border-radius: 15px; text-align: center; margin-bottom: 20px; }
         .search-btn { background: linear-gradient(135deg, #17a2b8 0%, #21c4b4 100%); color: white; border: none; padding: 15px 40px; font-size: 1.1em; border-radius: 25px; cursor: pointer; }
+        .results-section { margin-top: 40px; text-align: left; }
+        .result-card { background: white; border-radius: 15px; padding: 25px; margin: 20px 0; border-left: 5px solid #17a2b8;}
+        .detail-item { display: flex; justify-content: space-between; padding: 10px; border-bottom: 1px solid #f0f0f0; }
+        .no-results { text-align: center; padding: 40px; background: #f9fafb; border-radius: 15px; border: 2px dashed #ccc; }
+        .alert { padding: 15px; margin-bottom: 20px; border-radius: 5px; color: #856404; background-color: #fff3cd; border: 1px solid #ffeeba;}
     </style>
 </head>
 <body>
     <div class="search-container">
         <h1 class="title">Búsqueda en Vivo de Litigantes TCPA</h1>
-        <p class="subtitle">Esta búsqueda consulta una base de datos externa y puede tardar hasta 30 segundos.</p>
+        <p class="subtitle">La búsqueda puede tardar hasta 45 segundos en completarse.</p>
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}{% for category, message in messages %}
+                <div class="alert">{{ message }}</div>
+            {% endfor %}{% endif %}
+        {% endwith %}
         <div class="search-box">
             <form method="POST" action="{{ url_for('tcpa_search') }}">
-                <input type="text" name="phone_number" class="search-input" placeholder="Ingresa un número de 10 dígitos..." required pattern="\d{10}">
-                <button type="submit" class="search-btn">🕵️ Iniciar Búsqueda</button>
+                <input type="text" name="phone_number" class="search-input" placeholder="Ingresa un número..." required {% if is_busy %}disabled{% endif %}>
+                <button type="submit" class="search-btn" {% if is_busy %}disabled{% endif %}>
+                    {% if is_busy %}Buscador Ocupado...{% else %}🔍 Buscar{% endif %}
+                </button>
             </form>
         </div>
+        {% if resultado %}
+            <div class="results-section">
+                <h2>Resultado</h2>
+                {% if resultado.found %}
+                    <div class="result-card">
+                        {% for key, value in resultado.items() %}{% if key != 'found' %}
+                            <div class="detail-item"><span><strong>{{ key }}:</strong></span><span>{{ value }}</span></div>
+                        {% endif %}{% endfor %}
+                    </div>
+                {% else %}
+                    <div class="no-results"><p>{{ resultado.message }}</p></div>
+                {% endif %}
+            </div>
+        {% endif %}
     </div>
 </body>
 </html>
-
