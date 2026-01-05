@@ -1,171 +1,222 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin Login</title>
+    <title>Brighting Solutions | Admin Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --dark: #0f172a;
+            --accent: #db2777;
         }
-        
-        .login-container {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            max-width: 400px;
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: white; height: 100vh; overflow: hidden; }
+
+        .login-wrapper {
+            display: flex;
+            height: 100vh;
             width: 100%;
+        }
+
+        /* --- Panel Izquierdo (Visual & Branding) --- */
+        .brand-panel {
+            flex: 1.2; /* Más ancho para el arte */
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #db2777 100%);
+            background-size: 400% 400%;
+            animation: meshGradient 15s ease infinite;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            padding: 60px;
+            position: relative;
+        }
+
+        @keyframes meshGradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .brand-content {
+            z-index: 2;
             text-align: center;
         }
-        
-        .logo {
-            font-size: 3em;
-            margin-bottom: 20px;
+
+        .brand-icon { font-size: 5rem; margin-bottom: 20px; filter: drop-shadow(0 10px 15px rgba(0,0,0,0.2)); }
+        .brand-name { font-size: 3.5rem; font-weight: 800; letter-spacing: -2px; line-height: 0.9; }
+        .brand-name span { display: block; font-size: 1.5rem; font-weight: 400; letter-spacing: 8px; margin-top: 10px; opacity: 0.9; }
+
+        /* --- Panel Derecho (Login Form) --- */
+        .login-panel {
+            flex: 0.8;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 60px;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.05);
+            z-index: 10;
         }
-        
-        .title {
-            font-size: 1.8em;
-            color: #333;
-            margin-bottom: 10px;
+
+        .login-box {
+            width: 100%;
+            max-width: 360px;
+            animation: slideIn 0.6s ease-out;
         }
-        
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateX(30px); }
+            to { opacity: 1; transform: translateX(0); }
         }
-        
-        .form-group {
-            margin-bottom: 20px;
-            text-align: left;
-        }
-        
-        .form-label {
-            display: block;
-            color: #333;
-            font-weight: 600;
-            margin-bottom: 8px;
-        }
+
+        .login-box h2 { font-size: 2rem; font-weight: 800; color: var(--dark); margin-bottom: 10px; }
+        .login-box p { color: #64748b; margin-bottom: 40px; font-size: 1rem; }
+
+        /* --- Estilos de Formulario Sleek --- */
+        .form-group { margin-bottom: 25px; }
+        .form-label { display: block; font-size: 0.75rem; font-weight: 800; color: #94a3b8; text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1px; }
         
         .form-input {
             width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 1em;
-            transition: border-color 0.3s ease;
+            padding: 16px;
+            border: 2px solid #f1f5f9;
+            background: #f8fafc;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            color: var(--dark);
         }
-        
+
         .form-input:focus {
             outline: none;
-            border-color: #667eea;
+            border-color: var(--primary);
+            background: white;
+            box-shadow: 0 10px 15px -3px rgba(99, 102, 241, 0.1);
         }
-        
+
         .login-btn {
             width: 100%;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: var(--primary);
             color: white;
             border: none;
-            padding: 15px;
-            font-size: 1.1em;
-            font-weight: 600;
-            border-radius: 10px;
+            padding: 18px;
+            font-size: 1rem;
+            font-weight: 700;
+            border-radius: 12px;
             cursor: pointer;
-            transition: transform 0.3s ease;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
         }
-        
-        .login-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        }
-        
-        .error-message {
-            background: #fee2e2;
-            border: 1px solid #fca5a5;
-            color: #dc2626;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            font-size: 0.9em;
-        }
-        
-        .back-link {
-            margin-top: 20px;
-            padding-top: 20px;
-            border-top: 1px solid #e0e0e0;
-        }
-        
-        .back-link a {
-            color: #667eea;
-            text-decoration: none;
-            font-weight: 500;
-        }
-        
-        .back-link a:hover {
-            text-decoration: underline;
-        }
-        
-        .security-note {
-            background: #f3f4f6;
-            border-left: 4px solid #667eea;
+
+        .login-btn:hover { background: #4f46e5; transform: translateY(-2px); box-shadow: 0 20px 25px -5px rgba(79, 70, 229, 0.3); }
+
+        .error-alert {
+            background: #fff1f2;
+            border-left: 4px solid #f43f5e;
+            color: #be123c;
             padding: 15px;
-            margin-top: 20px;
-            font-size: 0.9em;
-            color: #666;
-            text-align: left;
+            border-radius: 8px;
+            margin-bottom: 25px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .footer-links { margin-top: 40px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 20px; }
+        .footer-links a { color: var(--primary); text-decoration: none; font-size: 0.9rem; font-weight: 600; }
+        
+        .security-badge {
+            margin-top: 30px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.8rem;
+            color: #94a3b8;
+            background: #f8fafc;
+            padding: 10px 15px;
+            border-radius: 10px;
+        }
+
+        /* --- Responsive --- */
+        @media (max-width: 900px) {
+            .brand-panel { display: none; }
+            .login-panel { flex: 1; }
         }
     </style>
 </head>
 <body>
-    <div class="login-container">
-        <div class="logo">🔐</div>
-        <h1 class="title">Admin Access</h1>
-        <p class="subtitle">Enter password to kontinue</p>
-        
-        {% with messages = get_flashed_messages() %}
-            {% if messages %}
-                {% for message in messages %}
-                    <div class="error-message">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-        
-        <form method="POST">
-            <div class="form-group">
-                <label for="password" class="form-label">Password</label>
-                <input 
-                    type="password" 
-                    id="password" 
-                    name="password" 
-                    class="form-input" 
-                    required 
-                    autofocus
-                    placeholder="Enter admin password"
-                >
-            </div>
-            
-            <button type="submit" class="login-btn">
-                🚀 Access Admin Panel
-            </button>
-        </form>
-        
-        <div class="back-link">
-            <a href="/">← Back to Main Page</a>
-        </div>
-        
-        <div class="security-note">
-            <strong>🛡️ Security Notice:</strong> This area is restricted to authorized personnel only. All access attempts are logged.
+
+<div class="login-wrapper">
+    
+    <div class="brand-panel">
+        <div class="brand-content">
+            <div class="brand-icon"><i class="fas fa-microchip"></i></div>
+            <h1 class="brand-name">
+                BRIGHTING
+                <span>SOLUTIONS</span>
+            </h1>
         </div>
     </div>
+
+    <div class="login-panel">
+        <div class="login-box">
+            <h2>Bienvenido</h2>
+            <p>Acceso restringido a la Consola de Administración.</p>
+
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    {% for message in messages %}
+                        <div class="error-alert">
+                            <i class="fas fa-exclamation-circle"></i>
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <div class="form-group">
+                    <label class="form-label">Contraseña del Sistema</label>
+                    <input 
+                        type="password" 
+                        name="password" 
+                        class="form-input" 
+                        required 
+                        autofocus 
+                        placeholder="••••••••••••"
+                    >
+                </div>
+
+                <button type="submit" class="login-btn">
+                    <span>Acceder ahora</span>
+                    <i class="fas fa-arrow-right"></i>
+                </button>
+            </form>
+
+            <div class="footer-links">
+                <a href="/"><i class="fas fa-chevron-left"></i> Volver al Portal de Búsqueda</a>
+            </div>
+
+            <div class="security-badge">
+                <i class="fas fa-user-shield"></i>
+                <span>Sesión monitoreada vía IP | Brighting IT Dept</span>
+            </div>
+        </div>
+    </div>
+
+</div>
+
 </body>
 </html>
 

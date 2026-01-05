@@ -3,110 +3,239 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Búsqueda Combinada</title>
+    <title>Brighting Solutions | Búsqueda Combinada</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
+        :root {
+            --primary: #6366f1;
+            --secondary: #a855f7;
+            --dark: #0f172a;
+            --glass: rgba(255, 255, 255, 0.9);
+            --danger: #ef4444;
+            --success: #10b981;
+        }
+
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-        .search-container { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 40px; box-shadow: 0 20px 40px rgba(0,0,0,0.1); max-width: 600px; width: 100%; text-align: center; }
-        .title { font-size: 2em; color: #333; margin-bottom: 10px; }
-        .search-box { margin: 30px 0; }
-        .search-input { width: 100%; padding: 20px; font-size: 1.2em; border: 2px solid #e0e0e0; border-radius: 15px; text-align: center; margin-bottom: 20px; }
-        .search-btn { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none; padding: 15px 40px; font-size: 1.1em; border-radius: 25px; cursor: pointer; }
-        .results-section { margin-top: 40px; display: none; text-align: left; }
-        .result-card { background: white; border-radius: 15px; padding: 25px; margin: 20px 0; border-left: 5px solid #667eea; }
-        .phone-number { font-size: 1.6em; font-weight: bold; color: #333; margin-bottom: 20px; text-align: center; }
-        .status-section { border: 1px solid #e0e0e0; border-radius: 10px; padding: 15px; margin-bottom: 15px; }
-        .status-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .status-title { font-size: 1.1em; font-weight: 600; }
-        .status-tag { padding: 5px 12px; border-radius: 20px; font-weight: bold; font-size: 0.9em; }
-        .status-red { background: #fee2e2; color: #dc2626; }
-        .status-green { background: #dcfce7; color: #16a34a; }
-        .detail-item { display: flex; justify-content: space-between; padding: 8px 0; }
-        .no-results { text-align: center; padding: 40px; background: #f9fafb; border-radius: 15px; border: 2px dashed #16a34a; }
+
+        body {
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            background: var(--dark);
+            min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px; overflow-x: hidden;
+            color: #1e293b;
+        }
+
+        /* --- Fondo Digital Aura (Consistencia) --- */
+        .bg-aura {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 20% 30%, #4f46e5 0%, transparent 40%),
+                        radial-gradient(circle at 80% 70%, #db2777 0%, transparent 40%),
+                        radial-gradient(circle at 50% 50%, #7c3aed 0%, transparent 50%);
+            filter: blur(80px); z-index: -1; animation: auraMove 20s ease infinite alternate;
+        }
+        @keyframes auraMove { from { transform: scale(1); } to { transform: scale(1.15); } }
+
+        /* --- Contenedor de Búsqueda --- */
+        .search-container {
+            background: var(--glass);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 45px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+            max-width: 650px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .brand-header { margin-bottom: 30px; }
+        .brand-header h1 { font-size: 2.2rem; font-weight: 800; letter-spacing: -1.5px; color: var(--dark); }
+        .brand-header p { font-size: 0.9rem; color: #64748b; text-transform: uppercase; letter-spacing: 2px; }
+
+        /* --- Input y Botón --- */
+        .search-box { position: relative; margin-bottom: 30px; }
+        .search-input {
+            width: 100%; padding: 20px 25px; font-size: 1.3rem; font-weight: 600;
+            border: 2px solid #e2e8f0; border-radius: 18px; text-align: center;
+            transition: all 0.3s; background: white;
+        }
+        .search-input:focus {
+            outline: none; border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.1);
+        }
+
+        .search-btn {
+            background: var(--primary); color: white; border: none;
+            padding: 16px 40px; font-size: 1.1rem; font-weight: 700;
+            border-radius: 14px; cursor: pointer; transition: all 0.3s;
+            margin-top: 15px; display: inline-flex; align-items: center; gap: 10px;
+        }
+        .search-btn:hover { background: #4f46e5; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(79, 70, 229, 0.3); }
+
+        /* --- Resultados --- */
+        .results-section { margin-top: 30px; text-align: left; }
+        
+        .result-card {
+            background: white; border-radius: 20px; padding: 30px;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border: 1px solid #f1f5f9;
+        }
+
+        .phone-header {
+            font-size: 1.8rem; font-weight: 800; color: var(--dark);
+            text-align: center; margin-bottom: 25px; padding-bottom: 15px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .status-box {
+            padding: 20px; border-radius: 16px; margin-bottom: 15px;
+            display: flex; align-items: center; justify-content: space-between;
+            transition: all 0.3s;
+        }
+
+        .status-blocked { background: #fff1f2; border: 1px solid #fecaca; color: #991b1b; }
+        .status-clean { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
+
+        .status-info h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 4px; }
+        .status-info p { font-size: 1.1rem; font-weight: 700; }
+
+        .status-badge { font-size: 1.5rem; }
+
+        .clean-hero {
+            padding: 40px; border-radius: 20px; background: #f0fdf4;
+            border: 2px dashed #22c55e; text-align: center;
+        }
+        .clean-hero i { font-size: 3rem; color: #22c55e; margin-bottom: 15px; }
+
+        .footer-back { margin-top: 30px; font-size: 0.9rem; font-weight: 600; }
+        .footer-back a { color: var(--primary); text-decoration: none; }
     </style>
 </head>
 <body>
+
+    <div class="bg-aura"></div>
+
     <div class="search-container">
-        <h1 class="title">Búsqueda Combinada</h1>
+        <header class="brand-header">
+            <h1>Búsqueda Combinada</h1>
+            <p>DNC + Suppression Master Engine</p>
+        </header>
+
         <div class="search-box">
-            <input type="text" id="phoneInput" class="search-input" placeholder="Ingresa un número de teléfono..."/>
-            <button id="searchBtn" class="search-btn" onclick="searchPhone()">🔍 Buscar</button>
+            <input type="text" id="phoneInput" class="search-input" placeholder="(000) 000-0000" maxlength="14"/>
+            <button id="searchBtn" class="search-btn" onclick="searchPhone()">
+                <i class="fas fa-magnifying-glass"></i> Consultar Sistema
+            </button>
         </div>
+
         <div id="resultsSection" class="results-section"></div>
+
+        <div class="footer-back">
+            <a href="/"><i class="fas fa-chevron-left"></i> Volver al Portal Principal</a>
+        </div>
     </div>
+
     <script>
+        // Formateo dinámico del input mientras se escribe
+        document.getElementById('phoneInput').addEventListener('input', e => {
+            let x = e.target.value.replace(/\D/g, '').match(/(\d{0,3})(\d{0,3})(\d{0,4})/);
+            e.target.value = !x[2] ? x[1] : '(' + x[1] + ') ' + x[2] + (x[3] ? '-' + x[3] : '');
+        });
+
         document.getElementById('phoneInput').addEventListener('keypress', e => { if (e.key === 'Enter') searchPhone(); });
+
         function formatPhoneNumber(number) { 
             const cleaned = String(number).replace(/\D/g, '');
             return `(${cleaned.slice(0,3)}) ${cleaned.slice(3,6)}-${cleaned.slice(6)}`;
         }
-        
+
         function searchPhone() {
             const phoneInput = document.getElementById('phoneInput');
             const resultsSection = document.getElementById('resultsSection');
             const phoneNumber = phoneInput.value.replace(/\D/g, '');
-            if (phoneNumber.length < 9) { alert('Ingresa un número de teléfono válido.'); return; }
+            
+            if (phoneNumber.length < 9) { 
+                alert('Por favor, ingresa un número válido de 10 dígitos.'); 
+                return; 
+            }
+
             resultsSection.style.display = 'block';
-            resultsSection.innerHTML = `<em>Buscando...</em>`;
+            resultsSection.innerHTML = `
+                <div style="text-align:center; padding: 20px;">
+                    <i class="fas fa-circle-notch fa-spin" style="font-size: 2rem; color: var(--primary);"></i>
+                    <p style="margin-top:10px; font-weight:600;">Consultando bases de datos...</p>
+                </div>`;
             
             fetch(`/api/suppression-search?number=${encodeURIComponent(phoneNumber)}`)
                 .then(response => response.json())
-                .then(data => displayResults(data));
+                .then(data => displayResults(data))
+                .catch(err => {
+                    resultsSection.innerHTML = `<div class="status-box status-blocked">Error de conexión con el servidor.</div>`;
+                });
         }
 
         function displayResults(data) {
             const resultsSection = document.getElementById('resultsSection');
             
             if (data.error) {
-                resultsSection.innerHTML = `<div class="result-card" style="border-left-color: #dc3545;"><h3>Error</h3><p>${data.error}</p></div>`;
+                resultsSection.innerHTML = `<div class="status-box status-blocked"><strong>Error:</strong> ${data.error}</div>`;
                 return;
             }
 
+            // CASO: NÚMERO LIMPIO
             if (!data.found) {
-                resultsSection.innerHTML = `<div class="no-results"><h3>✅ Número Limpio</h3><p>No se encontró en las listas de DNC o Supresión.</p></div>`;
+                resultsSection.innerHTML = `
+                    <div class="clean-hero">
+                        <i class="fas fa-check-circle"></i>
+                        <h2 style="color: #166534; font-weight:800;">NÚMERO LIMPIO</h2>
+                        <p style="color: #15803d; margin-top:5px;">Apto para contacto comercial inmediato.</p>
+                    </div>`;
                 return;
             }
-            
-            // --- LÓGICA CORREGIDA ---
-            let dncHtml;
-            // La corrección es simple: solo verificamos si el objeto data.dnc_status existe.
-            if (data.dnc_status) {
-                dncHtml = `
-                    <div class="status-header">
-                        <span class="status-title">Estado DNC</span>
-                        <span class="status-tag status-red">🚫 En Lista</span>
-                    </div>
-                    <div class="detail-item"><span>Estado:</span> <strong>${data.dnc_status.state || 'N/A'}</strong></div>`;
-            } else {
-                dncHtml = `
-                    <div class="status-header">
-                        <span class="status-title">Estado DNC</span>
-                        <span class="status-tag status-green">✅ Limpio</span>
-                    </div>`;
-            }
 
-            let suppressionHtml;
-            // La misma corrección aquí.
-            if (data.suppression_status) {
-                suppressionHtml = `
-                    <div class="status-header">
-                        <span class="status-title">Estado de Supresión</span>
-                        <span class="status-tag status-red">🚫 Suprimido</span>
+            // LÓGICA DE ESTADO DNC
+            let dncHtml = data.dnc_status ? `
+                <div class="status-box status-blocked">
+                    <div class="status-info">
+                        <h4>Estado DNC (Federal)</h4>
+                        <p>PROHIBIDO - LISTA DNC</p>
+                        <small>Estado: ${data.dnc_status.state || 'N/A'}</small>
                     </div>
-                    <div class="detail-item"><span>Commodity:</span> <strong>${data.suppression_status.commodity || 'N/A'}</strong></div>`;
-            } else {
-                suppressionHtml = `
-                    <div class="status-header">
-                        <span class="status-title">Estado de Supresión</span>
-                        <span class="status-tag status-green">✅ Limpio</span>
-                    </div>`;
-            }
+                    <div class="status-badge"><i class="fas fa-ban"></i></div>
+                </div>` : `
+                <div class="status-box status-clean">
+                    <div class="status-info">
+                        <h4>Estado DNC (Federal)</h4>
+                        <p>Limpio / No Registrado</p>
+                    </div>
+                    <div class="status-badge"><i class="fas fa-check"></i></div>
+                </div>`;
+
+            // LÓGICA DE ESTADO SUPRESIÓN
+            let suppressionHtml = data.suppression_status ? `
+                <div class="status-box status-blocked">
+                    <div class="status-info">
+                        <h4>Lista de Supresión Interna</h4>
+                        <p>SUPRIMIDO - ${data.suppression_status.commodity || 'N/A'}</p>
+                    </div>
+                    <div class="status-badge"><i class="fas fa-volume-xmark"></i></div>
+                </div>` : `
+                <div class="status-box status-clean">
+                    <div class="status-info">
+                        <h4>Lista de Supresión Interna</h4>
+                        <p>Limpio / Sin Restricción</p>
+                    </div>
+                    <div class="status-badge"><i class="fas fa-check"></i></div>
+                </div>`;
             
             resultsSection.innerHTML = `
                 <div class="result-card">
-                    <div class="phone-number">${formatPhoneNumber(data.search_number)}</div>
-                    <div class="status-section">${dncHtml}</div>
-                    <div class="status-section">${suppressionHtml}</div>
+                    <div class="phone-header">${formatPhoneNumber(data.search_number)}</div>
+                    ${dncHtml}
+                    ${suppressionHtml}
                 </div>
             `;
         }
